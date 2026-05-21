@@ -1,0 +1,44 @@
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.egg-info/
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Scan output (generated at runtime)
+output/
+
+# FAISS index (regenerated from dataset on first run)
+data/faiss_index/
+
+# IDE / editor
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Git
+.git/
+.gitignore
+
+# Docker artifacts
+Dockerfile*
+docker-compose*.yml
+.dockerignore
+
+# Thesis PDF (not needed inside the image)
+*.pdf
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Test artifacts
+*.log
+*.tmp

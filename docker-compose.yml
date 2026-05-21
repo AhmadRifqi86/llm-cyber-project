@@ -1,0 +1,73 @@
+version: "3.9"
+
+# =============================================================================
+# Automated Penetration Testing Framework – docker-compose
+#
+# Quick-start:
+#   export OPENAI_API_KEY=sk-...
+#   docker compose run --rm pentest example.com
+#
+# Full run with custom model:
+#   docker compose run --rm pentest example.com --model gpt-4o-mini
+#
+# Skip LLM (tools only):
+#   docker compose run --rm pentest example.com --skip-llm
+#
+# Interactive shell inside the container:
+#   docker compose run --rm --entrypoint bash pentest
+# =============================================================================
+
+services:
+
+  # ---------------------------------------------------------------------------
+  # Main penetration testing service
+  # ---------------------------------------------------------------------------
+  pentest:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        SUBFINDER_VERSION: "2.6.6"
+        GOBUSTER_VERSION: "3.6.0"
+    image: cyberpentest:latest
+
+    # OpenAI API key – set in your shell or a .env file
+    environment:
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - LLM_MODEL=${LLM_MODEL:-gpt-4o}
+
+    # Persist scan results and FAISS index on the host
+    volumes:
+      - ./output:/app/output
+      - ./data:/app/data
+
+    # Allow raw socket operations needed by nmap
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+
+    # Use host networking so nmap/wafw00f reach external targets directly;
+    # remove this line if you prefer isolated networking (some scans may fail)
+    network_mode: host
+
+    # Prevent runaway scans from locking the container
+    stop_grace_period: 30s
+
+    # Resource limits (adjust to your hardware)
+    deploy:
+      resources:
+        limits:
+          cpus: "4.0"
+          memory: 4G
+
+  # ---------------------------------------------------------------------------
+  # Optional: build only (useful for CI pre-building the image)
+  # ---------------------------------------------------------------------------
+  build-only:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: cyberpentest:latest
+    profiles:
+      - build
+    entrypoint: ["echo", "Image built successfully."]

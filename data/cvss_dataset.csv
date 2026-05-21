@@ -1,0 +1,25 @@
+description,cvss_vector
+SQL Injection in login parameter allows attacker to extract or modify sensitive database records leading to full data breach,CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H
+Reflected Cross-Site Scripting enables an attacker to inject malicious scripts into web pages viewed by victims stealing session cookies,CVSS:3.1/AV:N/AC:L/PR:N/UI:R/S:C/C:L/I:L/A:N
+Stored XSS allows persistent malicious script injection that executes in victim browsers compromising user accounts at scale,CVSS:3.1/AV:N/AC:L/PR:L/UI:R/S:C/C:L/I:L/A:N
+Directory traversal exposes sensitive files and configuration data enabling attackers to read arbitrary server files,CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:N/A:N
+Blind SQL Injection via time-based technique allows unauthorized extraction of database contents without visible output,CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H
+CRLF Injection in HTTP headers allows response splitting and log injection attacks enabling phishing and cache poisoning,CVSS:3.1/AV:N/AC:L/PR:N/UI:R/S:C/C:L/I:L/A:N
+Server-Side Request Forgery allows attacker to force server to make internal network requests exposing internal services,CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:C/C:H/I:L/A:N
+Cross-Site Request Forgery tricks authenticated users into performing unintended actions changing account settings or transactions,CVSS:3.1/AV:N/AC:L/PR:N/UI:R/S:U/C:N/I:H/A:N
+Missing Content Security Policy header allows malicious script injection through XSS expanding attack surface,CVSS:3.1/AV:N/AC:L/PR:N/UI:R/S:C/C:L/I:L/A:N
+Weak credentials allow brute force attacks enabling unauthorized access to application accounts and admin panels,CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H
+Insecure HTTP headers expose server version and allow clickjacking attacks reducing security posture significantly,CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:L/I:N/A:N
+Missing SSL/TLS allows man-in-the-middle attacks exposing sensitive data transmitted in plaintext over the network,CVSS:3.1/AV:N/AC:H/PR:N/UI:N/S:U/C:H/I:H/A:N
+Weak cipher suites allow cryptographic downgrade attacks enabling decryption of intercepted encrypted communications,CVSS:3.1/AV:N/AC:H/PR:N/UI:N/S:U/C:H/I:N/A:N
+Exposed backup files reveal source code and database credentials allowing attackers to gain full system access,CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H
+Command injection allows execution of arbitrary OS commands on the server enabling complete system compromise,CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:C/C:H/I:H/A:H
+XXE injection exploits XML parser to read sensitive server files or perform SSRF attacks on internal network,CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:L/A:N
+Open redirection allows attackers to redirect users to malicious websites facilitating phishing credential theft,CVSS:3.1/AV:N/AC:L/PR:N/UI:R/S:C/C:L/I:L/A:N
+Missing HttpOnly cookie flag exposes session cookies to client-side script access enabling session hijacking via XSS,CVSS:3.1/AV:N/AC:L/PR:N/UI:R/S:C/C:L/I:L/A:N
+Outdated server software contains known vulnerabilities that can be exploited for unauthorized access or denial of service,CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:L/I:L/A:L
+Path traversal via file parameter allows local file inclusion reading sensitive server configuration and credential files,CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:N/A:N
+Unprotected admin directory accessible without authentication allows complete administrative control of application,CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H
+Missing X-Frame-Options header enables clickjacking attacks tricking users into unintended interactions with the application,CVSS:3.1/AV:N/AC:L/PR:N/UI:R/S:U/C:N/I:L/A:N
+Information disclosure through verbose error messages reveals internal stack traces database schema and server paths,CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:L/I:N/A:N
+Broken authentication allows session fixation or credential stuffing attacks leading to unauthorized account access,CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:N
