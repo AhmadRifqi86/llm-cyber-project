@@ -80,18 +80,24 @@ def generate_report(
         vulnerability_results: Dict,
         base_scores: Dict,
         security_score: Dict,
-        api_key: str,
-        model: str = "gpt-4o",
-        output_dir: str = "output") -> str:
+        api_key: str = "",
+        model: str = "local",
+        output_dir: str = "output",
+        base_url: str = None,
+        exploit_results: Dict = None) -> str:
     """Generate a comprehensive HTML vulnerability report using the LLM."""
-    from openai import OpenAI
-    client = OpenAI(api_key=api_key)
+    from modules.utils import make_llm_client
+    client = make_llm_client(api_key, base_url)
+
+    exploit_section = ""
+    if exploit_results:
+        exploit_section = f"\n\nExploit execution results (confirmed vulnerabilities with PoC evidence):\n{str(exploit_results)[:3000]}"
 
     prompt = REPORT_PROMPT.format(
         security_rating=security_score.get('rating', 'Unknown'),
         security_score=security_score.get('score', 0),
         recon_info=str(recon_info)[:3000],
-        vuln_results=str(vulnerability_results)[:5000],
+        vuln_results=str(vulnerability_results)[:5000] + exploit_section,
         base_scores=str(base_scores),
         html_placeholder="",
     )

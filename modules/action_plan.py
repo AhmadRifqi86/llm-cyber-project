@@ -52,12 +52,13 @@ Now generate the HTML action plan document based solely on the provided input da
 def generate_action_plan(
         recon_info: Dict,
         vulnerability_results: Dict,
-        api_key: str,
-        model: str = "gpt-4o",
-        output_dir: str = "output") -> str:
+        api_key: str = "",
+        model: str = "local",
+        output_dir: str = "output",
+        base_url: str = None) -> str:
     """Generate an exploitation & validation action plan using the LLM."""
-    from openai import OpenAI
-    client = OpenAI(api_key=api_key)
+    from modules.utils import make_llm_client
+    client = make_llm_client(api_key, base_url)
 
     prompt = ACTION_PLAN_PROMPT.format(
         recon_info=str(recon_info)[:3000],

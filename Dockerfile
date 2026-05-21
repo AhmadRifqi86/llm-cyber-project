@@ -5,8 +5,12 @@
 #   Brac University, October 2025
 #
 # Build:   docker build -t cyberpentest .
-# Run:     docker run --rm -e OPENAI_API_KEY=sk-... \
-#            -v $(pwd)/output:/app/output cyberpentest example.com
+#
+# Run with local llama.cpp (default):
+#   docker compose run --rm pentest example.com
+#
+# Run with OpenAI:
+#   LLM_PROVIDER=openai OPENAI_API_KEY=sk-... docker compose run --rm pentest example.com
 # =============================================================================
 
 FROM python:3.11-slim-bookworm
@@ -44,6 +48,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         perl libio-socket-ssl-perl libnet-ssleay-perl \
         # Directory brute-force wordlists
         dirb \
+        # SQL injection exploitation
+        sqlmap \
         # Miscellaneous
         procps \
     && rm -rf /var/lib/apt/lists/*
@@ -134,6 +140,11 @@ WORKDIR /app
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
+# Pre-download the sentence-transformers embedding model so RAG works offline
+RUN python3 -c "from sentence_transformers import SentenceTransformer; \
+                SentenceTransformer('all-MiniLM-L6-v2'); \
+                print('Embedding model cached OK')"
+
 # ---------------------------------------------------------------------------
 # Layer 6 – Project source
 # ---------------------------------------------------------------------------
@@ -151,16 +162,18 @@ VOLUME ["/app/output", "/app/data"]
 # Smoke-test: verify all critical tools are reachable at image build time
 # ---------------------------------------------------------------------------
 RUN echo "=== Tool availability check ===" && \
-    nmap --version        | head -1 && \
-    nikto -Version 2>&1   | head -1 && \
+    nmap --version          | head -1 && \
+    nikto -Version 2>&1     | head -1 && \
     subfinder -version 2>&1 | head -1 && \
-    gobuster version 2>&1 | head -1 && \
-    wafw00f --version 2>&1 | head -1 && \
-    wapiti --version 2>&1  | head -1 && \
-    testssl --version 2>&1 | head -2 && \
+    gobuster version 2>&1   | head -1 && \
+    wafw00f --version 2>&1  | head -1 && \
+    wapiti --version 2>&1   | head -1 && \
+    testssl --version 2>&1  | head -2 && \
+    sqlmap --version 2>&1   | head -1 && \
     python3 -c "from modules.cvss_scoring import calculate_cvss_base_score; \
                 s=calculate_cvss_base_score({'AV':'N','AC':'L','PR':'N','UI':'N','S':'U','C':'H','I':'H','A':'H'}); \
                 assert s == 9.8, f'CVSS check failed: {s}'; print(f'CVSS self-test: 9.8 OK')" && \
+    python3 -c "from modules.exploit import run_exploit_phase; print('Exploit module: OK')" && \
     echo "=== All checks passed ==="
 
 # ---------------------------------------------------------------------------

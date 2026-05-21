@@ -76,15 +76,19 @@ def get_severity_label(score: float) -> str:
 class CVSSScorer:
     """CVSS base score generation using RAG + LLM (OpenAI-compatible API)."""
 
-    def __init__(self, api_key: str, model: str = "gpt-4o",
-                 embedding_model: str = "text-embedding-3-small",
+    def __init__(self, api_key: str = "", model: str = "local",
+                 embedding_model: str = "all-MiniLM-L6-v2",
                  dataset_path: str = "data/cvss_dataset.csv",
-                 index_path: str = "data/faiss_index"):
+                 index_path: str = "data/faiss_index",
+                 base_url: str = None,
+                 provider: str = "local"):
         self.api_key = api_key
         self.model = model
         self.embedding_model = embedding_model
         self.dataset_path = dataset_path
         self.index_path = index_path
+        self.base_url = base_url
+        self.provider = provider
         self.vector_store = None
         self._setup_rag()
 
@@ -92,23 +96,26 @@ class CVSSScorer:
     def _setup_rag(self):
         """Build or load the FAISS vector store for RAG context retrieval."""
         try:
-            from langchain_openai import OpenAIEmbeddings
             from langchain_community.vectorstores import FAISS
             from langchain.docstore.document import Document
             import pandas as pd
+            from modules.utils import make_embeddings
 
-            embeddings = OpenAIEmbeddings(
-                model=self.embedding_model,
-                openai_api_key=self.api_key
-            )
+            embeddings = make_embeddings(self.embedding_model, self.provider, self.api_key)
 
             if os.path.exists(self.index_path):
-                self.vector_store = FAISS.load_local(
-                    self.index_path, embeddings,
-                    allow_dangerous_deserialization=True
-                )
-                print("[#] Loaded existing FAISS index for RAG.")
-                return
+                try:
+                    self.vector_store = FAISS.load_local(
+                        self.index_path, embeddings,
+                        allow_dangerous_deserialization=True
+                    )
+                    print("[#] Loaded existing FAISS index for RAG.")
+                    return
+                except Exception:
+                    # Index built with different embedding dimension – rebuild
+                    import shutil
+                    shutil.rmtree(self.index_path, ignore_errors=True)
+                    print("[!] Existing FAISS index incompatible (embedding changed). Rebuilding.")
 
             if not os.path.exists(self.dataset_path):
                 print(f"[!] CVSS dataset not found at {self.dataset_path}. RAG disabled.")
@@ -137,8 +144,8 @@ class CVSSScorer:
     # ------------------------------------------------------------------
     def _llm_call(self, prompt: str, max_tokens: int = 200) -> str:
         """Send a prompt to the OpenAI-compatible LLM and return the response."""
-        from openai import OpenAI
-        client = OpenAI(api_key=self.api_key)
+        from modules.utils import make_llm_client
+        client = make_llm_client(self.api_key, self.base_url)
         try:
             response = client.chat.completions.create(
                 model=self.model,
@@ -214,12 +221,12 @@ Instructions:
 5. Always output valid JSON with double quotes."""
 
         raw = self._llm_call(prompt, max_tokens=200)
-        try:
-            m = re.search(r'\{[^}]+\}', raw, re.DOTALL)
-            return json.loads(m.group()) if m else json.loads(raw)
-        except Exception:
-            return {"AV": "N", "AC": "L", "PR": "N", "UI": "N",
-                    "S": "U", "C": "L", "I": "L", "A": "N"}
+        from modules.utils import try_parse_json
+        parsed = try_parse_json(raw)
+        if isinstance(parsed, dict) and 'AV' in parsed:
+            return parsed
+        return {"AV": "N", "AC": "L", "PR": "N", "UI": "N",
+                "S": "U", "C": "L", "I": "L", "A": "N"}
 
     # ------------------------------------------------------------------
     def score_vulnerability(self, vuln_type: str, scan_snippet: str) -> Dict:

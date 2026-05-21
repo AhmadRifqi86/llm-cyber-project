@@ -2,15 +2,19 @@
 requests>=2.31.0
 urllib3>=2.0.0
 
-# OpenAI LLM
+# OpenAI-compatible client (works with llama.cpp, Ollama, LM Studio, and OpenAI)
 openai>=1.30.0
 
 # RAG stack
 langchain>=0.2.0
 langchain-openai>=0.1.0
 langchain-community>=0.2.0
+langchain-huggingface>=0.0.3
 faiss-cpu>=1.7.4
 pandas>=2.0.0
+
+# Local embeddings (sentence-transformers, no API key needed)
+sentence-transformers>=2.7.0
 
 # Web technology detection (optional – falls back to header inspection)
 python-Wappalyzer>=0.3.1

@@ -1,17 +1,24 @@
 # =============================================================================
 # Automated Penetration Testing Framework – docker-compose
 #
-# Quick-start:
-#   export OPENAI_API_KEY=sk-...
+# Quick-start (local llama.cpp, default):
 #   docker compose run --rm pentest example.com
 #
-# Full run with custom model:
-#   docker compose run --rm pentest example.com --model gpt-4o-mini
+# Custom llama.cpp URL or Ollama:
+#   LLM_BASE_URL=http://localhost:11434/v1 LLM_MODEL=llama3.2 \
+#     docker compose run --rm pentest example.com
+#
+# OpenAI:
+#   LLM_PROVIDER=openai OPENAI_API_KEY=sk-... \
+#     docker compose run --rm pentest example.com
+#
+# Skip exploit phase:
+#   docker compose run --rm pentest example.com --skip-exploit
 #
 # Skip LLM (tools only):
 #   docker compose run --rm pentest example.com --skip-llm
 #
-# Interactive shell inside the container:
+# Interactive shell:
 #   docker compose run --rm --entrypoint bash pentest
 # =============================================================================
 
@@ -29,10 +36,13 @@ services:
         GOBUSTER_VERSION: "3.6.0"
     image: cyberpentest:latest
 
-    # OpenAI API key – set in your shell or a .env file
     environment:
-      - OPENAI_API_KEY=${OPENAI_API_KEY}
-      - LLM_MODEL=${LLM_MODEL:-gpt-4o}
+      # Local LLM provider (default). Point at your llama.cpp / Ollama / LM Studio server.
+      - LLM_PROVIDER=${LLM_PROVIDER:-local}
+      - LLM_BASE_URL=${LLM_BASE_URL:-http://localhost:8080/v1}
+      - LLM_MODEL=${LLM_MODEL:-local}
+      # Only required when LLM_PROVIDER=openai
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
 
     # Persist scan results and FAISS index on the host
     volumes:
