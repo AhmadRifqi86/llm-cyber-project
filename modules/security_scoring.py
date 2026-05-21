@@ -53,7 +53,7 @@ def calculate_overall_security_score(
     print(power_transformed)
     print(f"\nAggregated value: {round(aggregated, 3)}")
     print(f"\n{'-'*50}")
-    print(f"Overall Securiy Score: {overall_score}")
+    print(f"Overall Security Score: {overall_score}")
     print(f"Overall Security Rating: {rating}")
 
     return {

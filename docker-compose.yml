@@ -1,5 +1,3 @@
-version: "3.9"
-
 # =============================================================================
 # Automated Penetration Testing Framework – docker-compose
 #
@@ -46,8 +44,9 @@ services:
       - NET_ADMIN
       - NET_RAW
 
-    # Use host networking so nmap/wafw00f reach external targets directly;
-    # remove this line if you prefer isolated networking (some scans may fail)
+    # Use host networking so nmap/wafw00f reach external targets directly.
+    # NOTE: network_mode: host only works on Linux Docker — remove this line
+    # on macOS or Windows Docker Desktop (bridge networking is used instead).
     network_mode: host
 
     # Prevent runaway scans from locking the container

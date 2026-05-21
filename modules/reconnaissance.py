@@ -2,8 +2,11 @@ import re
 import ssl
 import socket
 import subprocess
+import urllib3
 import requests
 from typing import Dict, List, Tuple
+
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 from modules.utils import clean_ansi_escape_codes, print_step, print_info
 from config import (
@@ -189,7 +192,7 @@ def get_parameters(domain: str, output_dir: str) -> str:
     out_file = f"{output_dir}/params_{domain}.txt"
     try:
         subprocess.run(
-            ['paramspider', '-d', domain, '-o', out_file],
+            ['paramspider', '--domain', domain, '--output', out_file],
             capture_output=True, text=True, timeout=TIMEOUT_PARAMSPIDER
         )
         return f"Parameters saved to {out_file}"
