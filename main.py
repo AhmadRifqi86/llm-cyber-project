@@ -102,6 +102,16 @@ def main():
     parser = build_arg_parser()
     args = parser.parse_args()
 
+    # Normalize target: accept full URLs (https://example.com/path) or bare domains
+    from urllib.parse import urlparse
+    raw_target = args.domain
+    if '://' not in raw_target:
+        raw_target = 'http://' + raw_target
+    _parsed = urlparse(raw_target)
+    args.domain = _parsed.hostname or args.domain   # bare hostname, e.g. demo.pcremote.my.id
+    # Sanitize for use in directory names (colons, slashes, etc.)
+    _safe_domain = args.domain.replace(':', '_').replace('/', '_')
+
     # Validate API key requirement
     if not args.skip_llm:
         if args.provider == "openai" and not args.api_key:
@@ -116,7 +126,7 @@ def main():
 
     # Create timestamped output directory
     ts = datetime.now().strftime("%Y%m%d_%H%M%S")
-    out_dir = os.path.join(args.output_dir, f"scan_{args.domain}_{ts}")
+    out_dir = os.path.join(args.output_dir, f"scan_{_safe_domain}_{ts}")
     os.makedirs(out_dir, exist_ok=True)
 
     print("=" * 65)

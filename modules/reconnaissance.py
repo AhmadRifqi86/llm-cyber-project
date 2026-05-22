@@ -131,19 +131,32 @@ def find_open_ports(unique_ips: List[str]) -> Dict[str, List[int]]:
     return port_map
 
 
+def _probe_scheme(domain: str) -> str:
+    """Return 'https' if domain responds on port 443, else 'http'."""
+    try:
+        import ssl as _ssl, socket as _socket
+        ctx = _ssl.create_default_context()
+        with _socket.create_connection((domain, 443), timeout=5) as s:
+            with ctx.wrap_socket(s, server_hostname=domain):
+                return 'https'
+    except Exception:
+        return 'http'
+
+
 def techstack(domain: str) -> Dict:
     """Identify web technology stack via python-Wappalyzer or header inspection."""
+    scheme = _probe_scheme(domain)
     tech = {}
     try:
         from Wappalyzer import Wappalyzer, WebPage
         import warnings
         warnings.filterwarnings('ignore')
         wappalyzer = Wappalyzer.latest()
-        webpage = WebPage.new_from_url(f"http://{domain}", timeout=TIMEOUT_HTTP)
+        webpage = WebPage.new_from_url(f"{scheme}://{domain}", timeout=TIMEOUT_HTTP)
         tech = wappalyzer.analyze_with_categories(webpage)
     except ImportError:
         try:
-            resp = requests.get(f"http://{domain}", timeout=TIMEOUT_HTTP, verify=False)
+            resp = requests.get(f"{scheme}://{domain}", timeout=TIMEOUT_HTTP, verify=False)
             h = resp.headers
             for key in ['Server', 'X-Powered-By', 'X-Generator', 'Via']:
                 if h.get(key):
@@ -157,9 +170,10 @@ def techstack(domain: str) -> Dict:
 
 def firewall_check(domain: str) -> str:
     """Detect web application firewall using wafw00f."""
+    scheme = _probe_scheme(domain)
     try:
         result = subprocess.run(
-            ['wafw00f', f'http://{domain}'],
+            ['wafw00f', f'{scheme}://{domain}'],
             capture_output=True, text=True, timeout=TIMEOUT_WAFW00F
         )
         return clean_ansi_escape_codes(result.stdout)
