@@ -40,11 +40,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         dnsutils \
         # Network scanner
         nmap \
-        # Web server scanner (Perl-based)
-        nikto \
         # SSL/TLS test dependencies (used by testssl.sh)
         openssl \
-        # Perl SSL library needed by testssl.sh
+        # Perl + SSL libraries (needed by testssl.sh and nikto)
         perl libio-socket-ssl-perl libnet-ssleay-perl \
         # Directory brute-force wordlists
         dirb \
@@ -53,6 +51,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         # Miscellaneous
         procps \
     && rm -rf /var/lib/apt/lists/*
+
+# Nikto – not in Debian bookworm apt; install from upstream GitHub
+RUN git clone --depth 1 https://github.com/sullo/nikto.git /opt/nikto && \
+    chmod +x /opt/nikto/program/nikto.pl && \
+    ln -sf /opt/nikto/program/nikto.pl /usr/local/bin/nikto
 
 # Create the Kali-compatible wordlist symlink path used by config.py
 RUN mkdir -p /usr/share/wordlists && \
@@ -110,14 +113,11 @@ RUN pip install --no-cache-dir wafw00f && wafw00f --version 2>&1 | head -1
 # wapiti3 – Black-box web vulnerability scanner
 RUN pip install --no-cache-dir wapiti3 && wapiti --version 2>&1 | head -1
 
-# PwnXSS – XSS scanner
-# Try PyPI first; fall back to GitHub clone if not available
-RUN pip install --no-cache-dir pwnxss 2>/dev/null || ( \
-        git clone --depth 1 https://github.com/pwn0sec/PwnXSS.git /opt/PwnXSS && \
-        pip install --no-cache-dir -r /opt/PwnXSS/requirements.txt && \
-        chmod +x /opt/PwnXSS/pwnxss.py && \
-        ln -s /opt/PwnXSS/pwnxss.py /usr/local/bin/pwnxss \
-    )
+# PwnXSS – XSS scanner (install from GitHub; PyPI package is broken/stale)
+RUN git clone --depth 1 https://github.com/pwn0sec/PwnXSS.git /opt/PwnXSS && \
+    pip install --no-cache-dir -r /opt/PwnXSS/requirements.txt && \
+    printf '#!/bin/sh\npython3 /opt/PwnXSS/pwnxss.py "$@"\n' > /usr/local/bin/pwnxss && \
+    chmod +x /usr/local/bin/pwnxss
 
 # ParamSpider – URL parameter discovery
 # Install from GitHub because PyPI version may be stale

@@ -11,12 +11,12 @@ LLM_PROVIDER = os.environ.get("LLM_PROVIDER", "local")
 # llama.cpp default:  http://localhost:8080/v1
 # Ollama default:     http://localhost:11434/v1
 # LM Studio default:  http://localhost:1234/v1
-LLM_BASE_URL = os.environ.get("LLM_BASE_URL", "http://localhost:8080/v1")
+LLM_BASE_URL = os.environ.get("LLM_BASE_URL", "https://llm.pcremote.my.id/v1")
 
 # Model name sent in API requests.
 # llama.cpp ignores this field (uses whatever model is loaded).
 # For Ollama set to the pulled model name, e.g. "llama3.2" or "mistral".
-LLM_MODEL = os.environ.get("LLM_MODEL", "local")
+LLM_MODEL = os.environ.get("LLM_MODEL", "qwen3.5-9b")
 
 # Sentence-transformers model used for RAG embeddings (downloaded locally, no API key needed).
 # Override to an OpenAI model name when LLM_PROVIDER=openai.
