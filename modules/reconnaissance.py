@@ -94,16 +94,28 @@ def domain_active_check(subdomains: List[str]) -> List[str]:
     return active
 
 
+def _is_ip(s: str) -> bool:
+    import re as _re
+    return bool(_re.match(r'^\d{1,3}(\.\d{1,3}){3}$', s))
+
+
 def get_ip(subdomains: List[str]) -> Dict[str, List[str]]:
     """Resolve IP addresses for each subdomain using nslookup / socket."""
     ip_map = {}
     for sub in subdomains:
         host = _hostname(sub)
+        # If the target is already an IP, use it directly — nslookup on an IP
+        # does reverse DNS and returns the DNS server address, not the target.
+        if _is_ip(host):
+            ip_map[sub] = [host]
+            continue
         try:
             result = subprocess.run(
                 ['nslookup', host], capture_output=True, text=True, timeout=10
             )
             ips = re.findall(r'Address:\s+(\d+\.\d+\.\d+\.\d+)', result.stdout)
+            # Filter out the DNS server's own address (first Address: line)
+            ips = ips[1:] if len(ips) > 1 else ips
             ip_map[sub] = list(set(ips)) if ips else []
         except Exception:
             try:
