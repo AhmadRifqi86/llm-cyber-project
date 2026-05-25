@@ -15,11 +15,16 @@ from config import (
 )
 
 
+def _hostname(domain: str) -> str:
+    """Return just the hostname/IP, stripping any :port suffix."""
+    return domain.split(':')[0]
+
+
 def certificate_data_lookup(domain: str) -> List[str]:
     """Search subdomains via crt.sh certificate transparency logs."""
     subdomains = []
     try:
-        url = f"https://crt.sh/?q=%.{domain}&output=json"
+        url = f"https://crt.sh/?q=%.{_hostname(domain)}&output=json"
         response = requests.get(url, timeout=TIMEOUT_HTTP)
         if response.status_code == 200:
             data = response.json()
@@ -41,7 +46,7 @@ def tool_enum(domain: str) -> List[str]:
     subdomains = []
     try:
         result = subprocess.run(
-            ['subfinder', '-d', domain, '-silent'],
+            ['subfinder', '-d', _hostname(domain), '-silent'],
             capture_output=True, text=True, timeout=TIMEOUT_SUBFINDER
         )
         for line in result.stdout.splitlines():
@@ -93,15 +98,16 @@ def get_ip(subdomains: List[str]) -> Dict[str, List[str]]:
     """Resolve IP addresses for each subdomain using nslookup / socket."""
     ip_map = {}
     for sub in subdomains:
+        host = _hostname(sub)
         try:
             result = subprocess.run(
-                ['nslookup', sub], capture_output=True, text=True, timeout=10
+                ['nslookup', host], capture_output=True, text=True, timeout=10
             )
             ips = re.findall(r'Address:\s+(\d+\.\d+\.\d+\.\d+)', result.stdout)
             ip_map[sub] = list(set(ips)) if ips else []
         except Exception:
             try:
-                ip = socket.gethostbyname(sub)
+                ip = socket.gethostbyname(host)
                 ip_map[sub] = [ip]
             except Exception:
                 ip_map[sub] = []
@@ -133,11 +139,12 @@ def find_open_ports(unique_ips: List[str]) -> Dict[str, List[int]]:
 
 def _probe_scheme(domain: str) -> str:
     """Return 'https' if domain responds on port 443, else 'http'."""
+    host = _hostname(domain)
     try:
         import ssl as _ssl, socket as _socket
         ctx = _ssl.create_default_context()
-        with _socket.create_connection((domain, 443), timeout=5) as s:
-            with ctx.wrap_socket(s, server_hostname=domain):
+        with _socket.create_connection((host, 443), timeout=5) as s:
+            with ctx.wrap_socket(s, server_hostname=host):
                 return 'https'
     except Exception:
         return 'http'
@@ -185,10 +192,11 @@ def firewall_check(domain: str) -> str:
 
 def check_ssl_support(domain: str) -> Tuple[bool, str]:
     """Check whether the domain supports TLS/SSL on port 443."""
+    host = _hostname(domain)
     try:
         context = ssl.create_default_context()
-        with socket.create_connection((domain, 443), timeout=5) as sock:
-            with context.wrap_socket(sock, server_hostname=domain) as ssock:
+        with socket.create_connection((host, 443), timeout=5) as sock:
+            with context.wrap_socket(sock, server_hostname=host) as ssock:
                 version = ssock.version()
                 return True, f"SSL/TLS supported ({version})"
     except ssl.SSLError as e:
@@ -206,7 +214,7 @@ def get_parameters(domain: str, output_dir: str) -> str:
     out_file = f"{output_dir}/params_{domain}.txt"
     try:
         subprocess.run(
-            ['paramspider', '--domain', domain, '--output', out_file],
+            ['paramspider', '--domain', _hostname(domain), '--output', out_file],
             capture_output=True, text=True, timeout=TIMEOUT_PARAMSPIDER
         )
         return f"Parameters saved to {out_file}"

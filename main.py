@@ -102,13 +102,19 @@ def main():
     parser = build_arg_parser()
     args = parser.parse_args()
 
-    # Normalize target: accept full URLs (https://example.com/path) or bare domains
+    # Normalize target: accept full URLs, host:port, or bare domains
     from urllib.parse import urlparse
     raw_target = args.domain
     if '://' not in raw_target:
         raw_target = 'http://' + raw_target
     _parsed = urlparse(raw_target)
-    args.domain = _parsed.hostname or args.domain   # bare hostname, e.g. demo.pcremote.my.id
+    _host = _parsed.hostname or args.domain
+    _port = _parsed.port
+    # Preserve non-standard ports so tools hit the right port
+    if _port and _port not in (80, 443):
+        args.domain = f"{_host}:{_port}"
+    else:
+        args.domain = _host
     # Sanitize for use in directory names (colons, slashes, etc.)
     _safe_domain = args.domain.replace(':', '_').replace('/', '_')
 
