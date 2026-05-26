@@ -97,7 +97,10 @@ class CVSSScorer:
         """Build or load the FAISS vector store for RAG context retrieval."""
         try:
             from langchain_community.vectorstores import FAISS
-            from langchain.docstore.document import Document
+            try:
+                from langchain_core.documents import Document
+            except ImportError:
+                from langchain.schema import Document
             import pandas as pd
             from modules.utils import make_embeddings
 
