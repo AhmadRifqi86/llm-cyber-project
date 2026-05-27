@@ -32,34 +32,54 @@ def make_embeddings(embedding_model: str, provider: str = "local", api_key: str 
 
 
 def try_parse_json(text: str):
-    """Parse JSON from LLM output, tolerating markdown fences and trailing commas."""
+    """Parse JSON from LLM output, tolerating markdown fences, trailing commas,
+    and truncated arrays (salvages complete objects from a partial response)."""
     # Strip code fences
     text = re.sub(r'```(?:json)?\s*', '', text)
     text = re.sub(r'```', '', text).strip()
 
+    # Remove trailing commas globally
+    cleaned = re.sub(r',\s*([}\]])', r'\1', text)
+
     # Direct parse
     try:
-        return json.loads(text)
+        return json.loads(cleaned)
     except json.JSONDecodeError:
         pass
 
-    # Extract first JSON array or object
+    # Extract first complete JSON array or object
     for pattern in [r'\[.*?\]', r'\{.*?\}']:
-        m = re.search(pattern, text, re.DOTALL)
+        m = re.search(pattern, cleaned, re.DOTALL)
         if m:
-            candidate = m.group()
-            candidate = re.sub(r',\s*([}\]])', r'\1', candidate)
+            candidate = re.sub(r',\s*([}\]])', r'\1', m.group())
             try:
                 return json.loads(candidate)
             except json.JSONDecodeError:
                 pass
 
-    # Remove trailing commas globally and retry
-    cleaned = re.sub(r',\s*([}\]])', r'\1', text)
-    try:
-        return json.loads(cleaned)
-    except json.JSONDecodeError:
-        return None
+    # Salvage complete objects from a truncated array using brace matching
+    objects = []
+    depth = 0
+    start = None
+    for i, ch in enumerate(cleaned):
+        if ch == '{':
+            if depth == 0:
+                start = i
+            depth += 1
+        elif ch == '}':
+            depth -= 1
+            if depth == 0 and start is not None:
+                candidate = re.sub(r',\s*([}\]])', r'\1', cleaned[start:i + 1])
+                try:
+                    obj = json.loads(candidate)
+                    objects.append(obj)
+                except json.JSONDecodeError:
+                    pass
+                start = None
+    if objects:
+        return objects
+
+    return None
 
 
 def create_scan_result_folder(folder_name: str, base_dir: str = "output") -> str:
