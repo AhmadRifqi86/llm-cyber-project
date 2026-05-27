@@ -177,6 +177,15 @@ def main():
     ssl_supported = (recon_info.get('ssl_tls') or [False])[0]
     active_subs = recon_info.get('active_subdomains') or [args.domain]
 
+    # Discover additional web services on other open ports
+    from modules.reconnaissance import discover_web_ports
+    extra_targets = discover_web_ports(recon_info, args.domain)
+    for t in extra_targets:
+        if t not in active_subs:
+            active_subs.append(t)
+    if extra_targets:
+        print(f"[+] Added {len(extra_targets)} extra web target(s) from open ports: {extra_targets}")
+
     # ------------------------------------------------------------------ #
     # 2. Vulnerability Assessment                                          #
     # ------------------------------------------------------------------ #

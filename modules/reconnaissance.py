@@ -324,3 +324,138 @@ def run_reconnaissance(domain: str, output_dir: str) -> Dict:
     recon_info['parameters'] = param_result
 
     return recon_info
+
+
+def discover_web_ports(recon_info: Dict, primary_domain: str) -> List[str]:
+    """
+    Probe each discovered open port with HTTP and return additional
+    host:port targets that respond, excluding the primary domain's port.
+    """
+    primary_host = _hostname(primary_domain)
+    primary_port_str = primary_domain.split(':')[1] if ':' in primary_domain else ''
+    primary_port = int(primary_port_str) if primary_port_str.isdigit() else None
+
+    extra: List[str] = []
+    for ip, ports in recon_info.get('open_ports', {}).items():
+        host = primary_host if _is_ip(primary_host) else ip
+        for port in ports:
+            if primary_port and port == primary_port:
+                continue
+            target = f"{host}:{port}"
+            for scheme in ['http', 'https']:
+                try:
+                    resp = requests.get(
+                        f"{scheme}://{target}", timeout=5,
+                        verify=False, allow_redirects=True
+                    )
+                    if resp.status_code < 500:
+                        print_info(f"Additional web target found: {scheme}://{target} (HTTP {resp.status_code})")
+                        extra.append(target)
+                        break
+                except Exception:
+                    continue
+    return extra
+
+
+def crawl_forms(active_subdomains: List[str]) -> List[Dict]:
+    """
+    Crawl active subdomains (shallow, max 20 pages per host) to discover
+    HTML forms, their action URLs, HTTP methods, and input field names.
+    Returns a list of form dicts for use by the exploit planner.
+    """
+    from html.parser import HTMLParser
+    from urllib.parse import urljoin, urlparse as _urlparse
+
+    class _FormParser(HTMLParser):
+        def __init__(self):
+            super().__init__()
+            self.forms: List[Dict] = []
+            self._cur: Dict = {}
+
+        def handle_starttag(self, tag, attrs):
+            a = dict(attrs)
+            if tag == 'form':
+                self._cur = {
+                    'action': a.get('action', ''),
+                    'method': a.get('method', 'get').upper(),
+                    'inputs': [],
+                }
+            elif tag in ('input', 'textarea', 'select') and self._cur:
+                name = a.get('name', '')
+                if name:
+                    self._cur['inputs'].append({
+                        'name': name,
+                        'type': a.get('type', 'text'),
+                        'value': a.get('value', 'test'),
+                    })
+
+        def handle_endtag(self, tag):
+            if tag == 'form' and self._cur:
+                self.forms.append(self._cur)
+                self._cur = {}
+
+    class _LinkParser(HTMLParser):
+        def __init__(self):
+            super().__init__()
+            self.links: List[str] = []
+
+        def handle_starttag(self, tag, attrs):
+            if tag == 'a':
+                href = dict(attrs).get('href', '')
+                if href and not href.startswith(('#', 'mailto:', 'javascript:')):
+                    self.links.append(href)
+
+    all_forms: List[Dict] = []
+    visited: set = set()
+
+    for sub in active_subdomains:
+        for scheme in ['http', 'https']:
+            base = f"{scheme}://{sub}"
+            queue = [base]
+            crawled = 0
+
+            while queue and crawled < 20:
+                url = queue.pop(0)
+                if url in visited:
+                    continue
+                visited.add(url)
+                crawled += 1
+
+                try:
+                    resp = requests.get(url, timeout=8, verify=False,
+                                        allow_redirects=True)
+                    if resp.status_code >= 400:
+                        continue
+                    if 'html' not in resp.headers.get('Content-Type', ''):
+                        continue
+
+                    fp = _FormParser()
+                    fp.feed(resp.text)
+                    for form in fp.forms:
+                        action = form['action'] or url
+                        if not action.startswith('http'):
+                            action = urljoin(url, action)
+                        all_forms.append({
+                            'page_url': url,
+                            'form_action': action,
+                            'method': form['method'],
+                            'inputs': form['inputs'],
+                        })
+
+                    lp = _LinkParser()
+                    lp.feed(resp.text)
+                    base_netloc = _urlparse(base).netloc
+                    for href in lp.links:
+                        abs_url = urljoin(url, href)
+                        if _urlparse(abs_url).netloc == base_netloc:
+                            queue.append(abs_url)
+
+                    break  # got a valid response, skip other schemes
+                except Exception:
+                    continue
+
+    if all_forms:
+        print_info(f"Form crawler: found {len(all_forms)} form(s) across {len(visited)} page(s).")
+    else:
+        print_info("Form crawler: no forms discovered.")
+    return all_forms
