@@ -39,7 +39,8 @@ services:
     environment:
       # Local LLM provider (default). Point at your llama.cpp / Ollama / LM Studio server.
       - LLM_PROVIDER=${LLM_PROVIDER:-local}
-      - LLM_BASE_URL=${LLM_BASE_URL:-https://llm.pcremote.my.id/v1} #maybe I need to change this to Local llm url instead of tunneled
+      #- LLM_BASE_URL=${LLM_BASE_URL:-https://llm.pcremote.my.id/v1} #maybe I need to change this to Local llm url instead of tunneled
+      - LLM_BASE_URL=${LLM_BASE_URL:-https://openrouter.ai/api/v1}
       - LLM_MODEL=${LLM_MODEL:-qwen3.5-9b}
       # Only required when LLM_PROVIDER=openai
       - OPENAI_API_KEY=${OPENAI_API_KEY:-}
