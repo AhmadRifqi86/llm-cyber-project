@@ -88,6 +88,10 @@ def build_arg_parser() -> argparse.ArgumentParser:
         "--lambda-val", type=float, default=1.5,
         help="Power-transform lambda for security scoring (default: 1.5)"
     )
+    p.add_argument(
+        "--force-llm", action="store_true",
+        help="Skip known-app fast path and force the generic LLM-based exploit loop"
+    )
     return p
 
 
@@ -220,6 +224,7 @@ def main():
             model=args.model,
             base_url=args.base_url,
             output_dir=out_dir,
+            force_llm=args.force_llm,
         )
         save_json(exploit_results, exploit_cache)
 
